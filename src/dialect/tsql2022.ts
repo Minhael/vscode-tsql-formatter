@@ -31,7 +31,8 @@ const block = (start: string, end: string) => (state: LexerState, contents: stri
         if (endIndex > -1) {
             const startToken = { type: start, start: state.index, end: state.index + start.length - 1 };
             const endToken = { type: end, start: endIndex, end: endIndex + end.length - 1 };
-            return { index: endIndex + end.length, rules: state.rules, tokens: [...state.tokens, startToken, endToken] };
+            const token = { type: "string", start: startToken.end + 1, end: endToken.start - 1 };
+            return { index: endIndex + end.length, rules: state.rules, tokens: [...state.tokens, startToken, token, endToken] };
         }
     }
     return null;

@@ -1,44 +1,33 @@
+import { Expression, Node } from "./expressions";
 import { Token } from "./lexer";
 
-export type Node = {
-    type: string,
-    index: number,
-    children: number,
-};
-
-export type Grammar = Expression[];
-
-export interface Expression {
-    (tokens: Token[], index: number): Node | null
-}
+export const parse = (exprs: Expression[], tokens: Token[]): Node[] => loop(exprs, tokens);
 
 type ParserState = {
     index: number,
     nodes: Node[]
 };
 
-export const parse = (grammar: Grammar, tokens: Token[]): Node[] => loop(grammar, tokens);
-
-const loop = (grammar: Grammar, tokens: Token[], start: number = 0, end: number = tokens.length - 1): Node[] => {
+const loop = (exprs: Expression[], tokens: Token[], start: number = 0, end: number = tokens.length - 1): Node[] => {
     let state = { index: start, nodes: [] } as ParserState;
     while (state.index <= end) {
-        state = reduce(state, grammar, tokens);
+        state = reduce(state, exprs, tokens);
     }
     return state.nodes;
 };
 
-const reduce = (state: ParserState, grammar: Grammar, tokens: Token[]): ParserState => {
-    var node = fn(grammar, x => x(tokens, state.index), x => x !== null);
-    if (node === null) {
+const reduce = (state: ParserState, exprs: Expression[], tokens: Token[]): ParserState => {
+    var nodes = fn(exprs, x => x(tokens, state.index), x => x !== null);
+    if (nodes === null) {
         throw new Error("Unable to parse token " + tokens[state.index].type + " at index " + tokens[state.index].start);
     }
-    return { index: state.index + 1 + node.children, nodes: [...state.nodes, node] };
+    return { index: state.index + nodes[nodes.length - 1].end + 1, nodes: [...state.nodes, ...nodes] };
 };
 
-const fn = (rules: Expression[], fn: (item: Expression) => Node | null, filter: (item: Node | null) => boolean): Node | null => {
-    for (let i = 0; i < rules.length; ++i) {
-        var obj = fn(rules[i]);
+const fn = (exprs: Expression[], fn: (item: Expression) => Node[] | null, filter: (item: Node[] | null) => boolean): Node[] | null => {
+    for (let i = 0; i < exprs.length; ++i) {
+        var obj = fn(exprs[i]);
         if (filter(obj)) { return obj; }
     }
-    return null;
+    return [];
 };
