@@ -1,8 +1,8 @@
-import { AND, EQUAL, EXPR, Expression, MANY, Node, OPTIONAL, OR } from "../expressions";
+import { AND, EQUAL, DEFINE, Expression, MANY, Node, OPTIONAL, OR, EXPR } from "../expressions";
 
 export const grammar = (): Expression[] => {
     const map: { [key: string]: Expression } = {};
-    map["literal"] = EXPR(
+    map["literal"] = DEFINE(
         "literal",
         AND(
             OR(
@@ -20,10 +20,11 @@ export const grammar = (): Expression[] => {
             return { ...parent, children: [children[1]] };
         }
     );
-    map["word"] = EXPR(
+    map["word"] = DEFINE(
         "word",
         AND(
             OPTIONAL(EQUAL("[")),
+            OPTIONAL(EQUAL("#")),
             EQUAL("string"),
             OPTIONAL(EQUAL("]")),
         ),
@@ -31,29 +32,29 @@ export const grammar = (): Expression[] => {
             return { ...parent, children: [children.length > 1 ? children[1] : children[0]] };
         }
     );
-    map["alias"] = EXPR(
+    map["alias"] = DEFINE(
         "alias",
         AND(
             OPTIONAL(EQUAL("AS")),
-            map["word"],
+            EXPR(map, "word"),
         ),
         (parent, children) => {
             return { ...parent, children: [children[children.length - 1]] };
         }
     );
-    map["name"] = EXPR(
+    map["name"] = DEFINE(
         "name",
         AND(
-            OPTIONAL(AND(map["word"], EQUAL("."))),
-            OPTIONAL(AND(map["word"], EQUAL("."))),
-            OPTIONAL(AND(map["word"], EQUAL("."))),
-            map["word"]
+            OPTIONAL(AND(EXPR(map, "word"), EQUAL("."))),
+            OPTIONAL(AND(EXPR(map, "word"), EQUAL("."))),
+            OPTIONAL(AND(EXPR(map, "word"), EQUAL("."))),
+            EXPR(map, "word"),
         ),
         (parent, children) => {
             return { ...parent, children: children.filter(x => x.type === "word").flatMap(x => x.children) };
         }
     );
-    map["variable"] = EXPR(
+    map["variable"] = DEFINE(
         "variable",
         AND(
             EQUAL("@"),
@@ -63,59 +64,100 @@ export const grammar = (): Expression[] => {
             return { ...parent, name: children[1] };
         }
     );
-    map["object"] = EXPR(
+    map["assignment"] = DEFINE(
+        "assignment",
+        AND(
+            EXPR(map, "variable"),
+            OR(
+                EQUAL("="),
+                EQUAL("+="),
+                EQUAL("-="),
+                EQUAL("*="),
+                EQUAL("/="),
+                EQUAL("%="),
+            ),
+            EXPR(map, "name"),
+        )
+    );
+    map["object"] = DEFINE(
         "object",
         AND(
-            map["name"],
-            OPTIONAL(map["alias"]),
+            EXPR(map, "name"),
+            OPTIONAL(EXPR(map, "alias")),
             OPTIONAL(EQUAL(",")),
         ),
         (parent, children) => {
             return { ...parent, name: children[0], alias: children[1] };
         }
     );
-    map["expression"] = EXPR(
+    map["expression"] = DEFINE(
         "expression",
         AND(
             OPTIONAL(EQUAL("(")),
             OR(
-                map["name"],
-                map["variable"],
+                EXPR(map, "variable"),
+                EXPR(map, "name"),
             ),
             OR(
                 EQUAL("+"),
                 EQUAL("-"),
                 EQUAL("*"),
                 EQUAL("/"),
-                EQUAL("="),
-                EQUAL(">"),
-                EQUAL("<"),
-                EQUAL(">="),
-                EQUAL("<=")
+                EQUAL("%")
             ),
             OR(
+                EXPR(map, "expression"),
+                EXPR(map, "variable"),
+                EXPR(map, "literal"),
+                EXPR(map, "name"),
                 EQUAL("string"),
-                map["literal"],
-                map["name"],
-                map["expression"],
             ),
             OPTIONAL(EQUAL(")")),
         )
     );
-    map["select"] = EXPR(
+    map["comparison"] = DEFINE(
+        "comparison",
+        AND(
+            EXPR(map, "expression"),
+            OR(
+                EQUAL("<="),
+                EQUAL("<>"),
+                EQUAL(">="),
+                EQUAL("!<"),
+                EQUAL("!="),
+                EQUAL("!>"),
+                EQUAL("<"),
+                EQUAL("="),
+                EQUAL(">"),
+            ),
+            OR(
+                EXPR(map, "expression"),
+                EXPR(map, "variable"),
+                EXPR(map, "literal"),
+                EXPR(map, "name"),
+                EQUAL("string"),
+            )
+        )
+    );
+    map["select"] = DEFINE(
         "select",
         AND(
             EQUAL("SELECT"),
             OR(
                 EQUAL("*"),
-                MANY(map["object"]),
+                MANY(
+                    OR(
+                        EXPR(map, "object"),
+                        EXPR(map, "assignment"),
+                    )
+                ),
             ),
             EQUAL("FROM"),
-            map["object"],
+            EXPR(map, "object"),
             OPTIONAL(
                 AND(
                     EQUAL("WHERE"),
-                    map["expression"]
+                    EXPR(map, "comparison"),
                 )
             ),
             OPTIONAL(EQUAL(";"))

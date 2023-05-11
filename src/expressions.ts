@@ -12,12 +12,16 @@ export interface Expression {
     (tokens: Token[], index: number): Node[] | null
 };
 
-export const EXPR = (name: string, expr: Expression, builder: (parent: Node, children: Node[]) => Node = (p, _) => p): Expression => (tokens: Token[], index: number): Node[] | null => {
+export const DEFINE = (name: string, expr: Expression, builder: (parent: Node, children: Node[]) => Node = (p, _) => p): Expression => (tokens: Token[], index: number): Node[] | null => {
     const nodes = expr(tokens, index);
     if (nodes !== null && nodes.length > 0) {
         return [builder({ type: name, start: index, end: nodes[nodes.length - 1].end, children: nodes }, nodes)];
     }
     return null;
+};
+
+export const EXPR = (grammar: { [key: string]: Expression }, name: string): Expression => (tokens: Token[], index: number): Node[] | null => {
+    return grammar[name](tokens, index);
 };
 
 export const EQUAL = (word: string): Expression => (tokens: Token[], index: number): Node[] | null => {
