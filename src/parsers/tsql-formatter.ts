@@ -32,16 +32,6 @@ export const grammar = (): Expression[] => {
             return { ...parent, children: [children.length > 1 ? children[1] : children[0]] };
         }
     );
-    map["alias"] = DEFINE(
-        "alias",
-        AND(
-            OPTIONAL(EQUAL("AS")),
-            EXPR(map, "word"),
-        ),
-        (parent, children) => {
-            return { ...parent, children: [children[children.length - 1]] };
-        }
-    );
     map["name"] = DEFINE(
         "name",
         AND(
@@ -83,11 +73,16 @@ export const grammar = (): Expression[] => {
         "object",
         AND(
             EXPR(map, "name"),
-            OPTIONAL(EXPR(map, "alias")),
+            OPTIONAL(
+                AND(
+                    OPTIONAL(EQUAL("AS")),
+                    EXPR(map, "word"),
+                )
+            ),
             OPTIONAL(EQUAL(",")),
         ),
         (parent, children) => {
-            return { ...parent, name: children[0], alias: children[1] };
+            return { ...parent, name: children[0], alias: children[2] };
         }
     );
     map["expression"] = DEFINE(
@@ -98,19 +93,25 @@ export const grammar = (): Expression[] => {
                 EXPR(map, "variable"),
                 EXPR(map, "name"),
             ),
-            OR(
-                EQUAL("+"),
-                EQUAL("-"),
-                EQUAL("*"),
-                EQUAL("/"),
-                EQUAL("%")
-            ),
-            OR(
-                EXPR(map, "expression"),
-                EXPR(map, "variable"),
-                EXPR(map, "literal"),
-                EXPR(map, "name"),
-                EQUAL("string"),
+            OPTIONAL(
+                MANY(
+                    AND(
+                        OR(
+                            EQUAL("+"),
+                            EQUAL("-"),
+                            EQUAL("*"),
+                            EQUAL("/"),
+                            EQUAL("%")
+                        ),
+                        OR(
+                            EXPR(map, "expression"),
+                            EXPR(map, "variable"),
+                            EXPR(map, "literal"),
+                            EXPR(map, "name"),
+                            EQUAL("string"),
+                        )
+                    )
+                )
             ),
             OPTIONAL(EQUAL(")")),
         )
