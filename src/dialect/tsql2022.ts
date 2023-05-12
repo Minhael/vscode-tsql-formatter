@@ -19,6 +19,16 @@ const comparison = ['>=', '>', '<>', '<=', '<', '!<', '!=', '!>'];
 
 const keyword = (word: string) => (state: LexerState, contents: string): LexerState | null => {
     if (contents.startsWith(word, state.index)) {
+        const c = contents.charAt(state.index + word.length);
+        if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9') { return null; }
+        const token = { type: word, start: state.index, end: state.index + word.length - 1 };
+        return { index: state.index + word.length, rules: state.rules, tokens: [...state.tokens, token] };
+    }
+    return null;
+};
+
+const symbol = (word: string) => (state: LexerState, contents: string): LexerState | null => {
+    if (contents.startsWith(word, state.index)) {
         const token = { type: word, start: state.index, end: state.index + word.length - 1 };
         return { index: state.index + word.length, rules: state.rules, tokens: [...state.tokens, token] };
     }
@@ -85,10 +95,10 @@ const whitespaces = (state: LexerState, contents: string): LexerState | null => 
 export const tsql2022 = [
     ...blocks.map(([x, y]) => block(x, y)),
     ...reserved.map(x => keyword(x)),
-    ...operators.map(x => keyword(x)),
-    ...bitwise.map(x => keyword(x)),
-    ...arithmetic.map(x => keyword(x)),
-    ...comparison.map(x => keyword(x)),
+    ...operators.map(x => symbol(x)),
+    ...bitwise.map(x => symbol(x)),
+    ...arithmetic.map(x => symbol(x)),
+    ...comparison.map(x => symbol(x)),
     word,
     number,
     whitespaces,

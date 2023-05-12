@@ -42,7 +42,7 @@ export const MANY = (expr: Expression): Expression => (tokens: Token[], index: n
     let result = expr(tokens, index);
     while (result !== null && result.length > 0) {
         nodes = [...nodes, ...result];
-        result = expr(tokens, result[nodes.length - 1].end + 1);
+        result = expr(tokens, nodes[nodes.length - 1].end + 1);
     }
 
     if (result !== null && result.length > 0) {
