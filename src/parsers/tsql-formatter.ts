@@ -102,7 +102,7 @@ export const grammar = (): Expression[] => {
     map["operation"] = DEFINE(
         "operation",
         AND(
-            EXPR(map, "expression"),
+            EXPR(map, "operant"),
             OPTIONAL(
                 MANY(
                     AND(
@@ -113,7 +113,7 @@ export const grammar = (): Expression[] => {
                             EQUAL("-"),
                             EQUAL("%")
                         ),
-                        EXPR(map, "expression"),
+                        EXPR(map, "operant"),
                     )
                 )
             ),
@@ -129,7 +129,7 @@ export const grammar = (): Expression[] => {
     map["comparison"] = DEFINE(
         "comparison",
         AND(
-            EXPR(map, "operant"),
+            EXPR(map, "expression"),
             OR(
                 EQUAL("<="),
                 EQUAL("<>"),
@@ -141,7 +141,7 @@ export const grammar = (): Expression[] => {
                 EQUAL("="),
                 EQUAL(">"),
             ),
-            EXPR(map, "operant"),
+            EXPR(map, "expression"),
         )
     );
     map["select"] = DEFINE(
