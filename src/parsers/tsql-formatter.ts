@@ -80,7 +80,6 @@ export const grammar = (): Expression[] => {
             OR(
                 EXPR(map, "function"),
                 EXPR(map, "name"),
-                EQUAL("number"),
             ),
             OPTIONAL(
                 AND(
@@ -132,28 +131,106 @@ export const grammar = (): Expression[] => {
             EXPR(map, "operant"),
         )
     );
+    //  https://learn.microsoft.com/en-us/sql/t-sql/queries/search-condition-transact-sql?view=sql-server-ver16
     map["comparison"] = DEFINE(
         "comparison",
-        AND(
-            EXPR(map, "expression"),
-            OR(
-                EQUAL("<="),
-                EQUAL("<>"),
-                EQUAL(">="),
-                EQUAL("!<"),
-                EQUAL("!="),
-                EQUAL("!>"),
-                EQUAL("<"),
-                EQUAL("="),
-                EQUAL(">"),
+        OR(
+            AND(
+                EXPR(map, "expression"),
+                OR(
+                    EQUAL("<="),
+                    EQUAL("<>"),
+                    EQUAL(">="),
+                    EQUAL("!<"),
+                    EQUAL("!="),
+                    EQUAL("!>"),
+                    EQUAL("<"),
+                    EQUAL("="),
+                    EQUAL(">"),
+                ),
+                EXPR(map, "expression"),
             ),
-            EXPR(map, "expression"),
+            AND(
+                EXPR(map, "expression"),
+                EQUAL("IS"),
+                OPTIONAL(EQUAL("NOT")),
+                EQUAL("NULL"),
+            ),
+            AND(
+                EQUAL("("),
+                EXPR(map, "criteria"),
+                EQUAL(")"),
+            )
         )
+    );
+    map["condition"] = DEFINE(
+        "condition",
+        AND(
+            EXPR(map, "comparison"),
+            OPTIONAL(
+                MANY(
+                    AND(
+                        OR(
+                            EQUAL("AND"),
+                            EQUAL("OR"),
+                        ),
+                        EXPR(map, "comparison"),
+                    )
+                )
+            ),
+        )
+    );
+    map["criteria"] = DEFINE(
+        "criteria",
+        OR(
+            EXPR(map, "condition"),
+            EXPR(map, "comparison"),
+        )
+    );
+    map["join"] = DEFINE(
+        "join",
+        OR(
+            AND(
+                OPTIONAL(
+                    OR(
+                        EQUAL("INNER"),
+                        EQUAL("CROSS"),
+                        AND(
+                            OR(
+                                EQUAL("LEFT"),
+                                EQUAL("RIGHT"),
+                                EQUAL("FULL"),
+                            ),
+                            OPTIONAL(EQUAL("OUTER")),
+                        ),
+                    )
+                ),
+                EQUAL("JOIN"),
+                EXPR(map, "object"),
+                EQUAL("ON"),
+                EXPR(map, "criteria"),
+            ),
+            AND(
+                OR(
+                    EQUAL("CROSS"),
+                    EQUAL("OUTER"),
+                ),
+                EQUAL("APPLY"),
+                EXPR(map, "object"),
+            ),
+        ),
     );
     map["select"] = DEFINE(
         "select",
         AND(
             EQUAL("SELECT"),
+            OPTIONAL(EQUAL("DISTINCT")),
+            OPTIONAL(
+                AND(
+                    EQUAL("TOP"),
+                    EQUAL("number"),
+                )
+            ),
             OR(
                 EQUAL("*"),
                 MANY(
@@ -161,6 +238,7 @@ export const grammar = (): Expression[] => {
                         OR(
                             EXPR(map, "assignment"),
                             EXPR(map, "object"),
+                            EQUAL("number"),
                         ),
                         OPTIONAL(EQUAL(",")),
                     )
@@ -173,6 +251,7 @@ export const grammar = (): Expression[] => {
         AND(
             EQUAL("FROM"),
             EXPR(map, "object"),
+            OPTIONAL(MANY(EXPR(map, "join")))
         )
     );
     map["where"] = DEFINE(
@@ -181,7 +260,7 @@ export const grammar = (): Expression[] => {
             OPTIONAL(
                 AND(
                     EQUAL("WHERE"),
-                    EXPR(map, "comparison"),
+                    EXPR(map, "criteria"),
                 )
             ),
         )

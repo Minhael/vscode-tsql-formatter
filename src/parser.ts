@@ -18,7 +18,7 @@ const loop = (exprs: Expression[], tokens: Token[], start: number = 0, end: numb
 
 const reduce = (state: ParserState, exprs: Expression[], tokens: Token[]): ParserState => {
     var nodes = fn(exprs, x => x(tokens, state.index), x => x !== null);
-    if (nodes === null) {
+    if (nodes === null || nodes.length === 0) {
         throw new Error("Unable to parse token " + tokens[state.index].type + " at index " + tokens[state.index].start);
     }
     return { index: state.index + nodes[nodes.length - 1].end + 1, nodes: [...state.nodes, ...nodes] };
