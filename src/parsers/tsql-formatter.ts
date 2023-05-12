@@ -85,41 +85,51 @@ export const grammar = (): Expression[] => {
             return { ...parent, name: children[0], alias: children[2] };
         }
     );
-    map["expression"] = DEFINE(
-        "expression",
-        AND(
-            OPTIONAL(EQUAL("(")),
-            OR(
-                EXPR(map, "variable"),
-                EXPR(map, "name"),
+    map["operant"] = DEFINE(
+        "operant",
+        OR(
+            EXPR(map, "variable"),
+            EXPR(map, "literal"),
+            EXPR(map, "name"),
+            EQUAL("string"),
+            AND(
+                EQUAL("("),
+                EXPR(map, "expression"),
+                EQUAL(")"),
             ),
+        )
+    );
+    map["operation"] = DEFINE(
+        "operation",
+        AND(
+            EXPR(map, "expression"),
             OPTIONAL(
                 MANY(
                     AND(
                         OR(
-                            EQUAL("+"),
-                            EQUAL("-"),
                             EQUAL("*"),
                             EQUAL("/"),
+                            EQUAL("+"),
+                            EQUAL("-"),
                             EQUAL("%")
                         ),
-                        OR(
-                            EXPR(map, "expression"),
-                            EXPR(map, "variable"),
-                            EXPR(map, "literal"),
-                            EXPR(map, "name"),
-                            EQUAL("string"),
-                        )
+                        EXPR(map, "expression"),
                     )
                 )
             ),
-            OPTIONAL(EQUAL(")")),
+        )
+    );
+    map["expression"] = DEFINE(
+        "expression",
+        OR(
+            EXPR(map, "operation"),
+            EXPR(map, "operant"),
         )
     );
     map["comparison"] = DEFINE(
         "comparison",
         AND(
-            EXPR(map, "expression"),
+            EXPR(map, "operant"),
             OR(
                 EQUAL("<="),
                 EQUAL("<>"),
@@ -131,13 +141,7 @@ export const grammar = (): Expression[] => {
                 EQUAL("="),
                 EQUAL(">"),
             ),
-            OR(
-                EXPR(map, "expression"),
-                EXPR(map, "variable"),
-                EXPR(map, "literal"),
-                EXPR(map, "name"),
-                EQUAL("string"),
-            )
+            EXPR(map, "operant"),
         )
     );
     map["select"] = DEFINE(
